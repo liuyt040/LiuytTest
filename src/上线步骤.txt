@@ -1,0 +1,167 @@
+1 将 config、pdf、logs、目录放到/home/cmis/目录下
+2 注意将调查报告(doc)，流程文件(cmis-studio)，电子签章合同(pdf)，日终文件路径放到共享存储目录
+3 替换配置文件中的路径及服务器地址
+4 在/home/sharecmis/fts/send/目录下建backup、cbs、gen目录，日终给外系统文件目录
+需要替换的配置文件路径
+cmis.property
+ *permission.file.path=/home/sharecmis/cmis-studio/permissions
+ *datapermission.file.path=/home/sharecmis/cmis-studio/permissions
+ *hsIp=http://28.83.116.24:9080/ycloans/Cmis2YcloansHttpChannel
+ *ESBIP ESBPORT 负载地址
+ *PageofficeFilePath
+ *messAddr
+ *messPort
+ *informationView
+ *savesignurl
+ *ctrContAdress
+ *pfxSealPath
+ *simfangFile
+ *targetFile
+ *pictureFile
+ *financialReportPath
+ *SystemNode 
+ *localFilePath 信贷日终文件存放路径
+ *localSendFilePath 信贷对外发送文件路径
+
+echain.properties
+ *appservertype=websphere
+ *echainstudiopath=/home/sharecmis/cmis-studio/
+
+logging.xml
+ *需要在服务器端建路径/home/cmis/logs,将logs目录放入/home/cmis/下
+
+eChainStudio.jnlp
+ *修改其中地址为服务器地址 http://28.83.116.22:9080/ncmis-web/echain/studio
+
+shuffle.properties
+ *shufflepath=/home/sharecmis/cmis-studio/shuffle
+
+cmis-dao.properties
+ *datapermission.file.path /home/sharecmis/cmis-studio/permissions
+ *datapermission.file.path=/home/sharecmis/cmis-studio/permissions
+
+upload.xml
+ *filePath /home/sharecmis/doc/save
+
+影像系统数据库配置：S_Sys_Interaction.sys_id='IMAGEURL'
+影像系统数据库配置：S_Sys_Interaction.sys_id='TMDYURL'
+影像系统数据库配置：S_Sys_Interaction.sys_id='informationView'
+
+webofficeView.jsp文件中的服务地址
+
+涉及外系统过ESB：电票、国结、核心、评级授信、ECIF、理财、短信、资金、手机银行、数仓、总账
+涉及外系统不过ESB:核算、影像、大数据平台、单点登录
+电子签章。
+电票	过ESB	28.83.84.20（负载）		30014
+国结				
+核心				
+评级授信				
+ECIF				
+理财				
+短信				
+资金				
+手机银行				
+总账				
+数仓
+				
+核算	不过ESB	28.83.116.24（负载）		9080
+影像				
+大数据平台				
+单点登录				
+
+
+数据库序列重置；
+
+services.xml定时任务，电信启动，移动关闭
+
+电子签章最新的授权文件，及电子章
+lpr基准利率值，质押贷产品利率值
+
+
+1将老系统数据导入数据库(上线时无此步骤，改为从生产库抽数，保证新生产数据库能联通生产老数据库16.83.17.148）
+
+
+create user cmis identified by cmis default tablespace USER_XTHT temporary tablespace TEMP ;
+
+grant connect,resource to cmis ;
+
+grant create any table to cmis ;
+
+grant select any dictionary to cmis ;
+
+grant create any view to cmis ;
+
+grant create any sequence to cmis ;
+
+grant CREATE any SYNONYM to cmis ;
+
+grant create any index to cmis ;
+
+alter user cmis  quota 0 on SYSTEM;
+
+alter user cmis  quota unlimited on USER_XTHT;
+
+grant dba to cmis  ;
+
+导出老系统dmp
+--expdp cmis/cmis@16.83.17.148:1521/orcl directory=DUMP_DIRCS EXCLUDE=TABLE:\" IN \'ACC_CVRG_HIS\' \",table:\" IN \'ACC_ACCP_HIS\' \",table:\" IN \'ACC_LOAN_HIS\' \",table:\" IN \'WEB_OFFICE_FILE\' \"  dumpfile=cmis111102.dmp
+nohup exp cmis/cmis@16.83.17.148:1521/cmis file=./20191206CMIS.dmp &
+
+
+imp cmis/cmis@17.82.50.84:1521/orcl file=./20191206CMIS.dmp ignore=n tablespaces=USER_XTHT  full=y 
+impdp cmis/cmis@17.82.50.84/orcl directory=DUMP_DIRCS dumpfile=XTMCS20191111.dmp remap_tablespace=XT_CMIS:USER_XTHT
+
+
+2 导出
+
+2将演练环境新数据导入新数据库
+select * from all_directories ;
+
+
+select username,default_tablespace from user_users;
+
+create user newcmis identified by newcmis default tablespace USER_XTHT temporary tablespace TEMP ;
+
+grant connect,resource to newcmis;
+
+grant create any table to newcmis;
+
+grant select any dictionary to newcmis;
+
+grant create any view to newcmis;
+
+grant create any sequence to newcmis;
+
+grant CREATE any SYNONYM to newcmis;
+
+grant create any index to newcmis;
+
+alter user newcmis quota 0 on SYSTEM;
+
+alter user newcmis quota unlimited on USER_XTHT;
+
+grant dba to newcmis ;
+
+
+impdp newcmis/newcmis@28.83.98.3:1521/dkhsxt directory=ORACLE_BASE dumpfile=newcmis20191026.dmp cluster=no
+
+expdp newcmis/OVR5pGQR3vpY@28.83.98.3:1521/dkhsxt directory=DUMPDIR  dumpfile=newcmis20191207.dmp
+
+
+--影像的压测地址ping不通
+--大数据平台没有压测环境，
+检查核算是否有垫款金额与垫款余额不一致的数据
+select * from lm_loan@ycloans A where a.loan_typ='YC005' AND a.orig_prcp<>a.loan_os_prcp;
+如果有，跑完贷款日终任务后将垫款余额调整为与垫款金额一致，再跑一次贷款日终
+acc_loan
+acc_cushion
+
+屏蔽老系统新增功能，只留档案管理
+DELETE FROM s_roleright a WHERE a.resourceid NOT IN ('xtpz','userPermissionFile_systemmanage','xdglxt','xddagl','xddawh');
+生成全行用户权限文件
+关闭老生产定时
+
+当数据库地址修改时
+1 修改was数据源地址
+2 修改echain.pro文件中的密码
+3 修改数据库中核算数据库dblink密码

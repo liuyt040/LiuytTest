@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<transaction>
+	<header>
+		<msg>
+			<sndAppCd>CMIS</sndAppCd>
+			<sndDt>20200521</sndDt>
+			<sndTm>181009191</sndTm>
+			<seqNb>202005210000389149</seqNb>
+			<msgCd>ECIF.00013080.01</msgCd>
+			<callTyp>SYN</callTyp>
+			<rcvAppCd>ECIF</rcvAppCd>
+		</msg>
+	</header>
+	<body>
+		<request>
+			<ecifReqHdr>
+				<reqTe>0715</reqTe>
+				<reqOrg>88018</reqOrg>
+			</ecifReqHdr>
+			<ecifCustNo>p302220497</ecifCustNo>
+			<custType>114</custType>
+			<maritalStat>10</maritalStat>
+			<eduStat>99</eduStat>
+			<degree>5</degree>
+			<politicalStatus>04</politicalStatus>
+			<jobTitle>9</jobTitle>
+			<custBankRel>B1</custBankRel>
+			<companyEconomicType>9000</companyEconomicType>
+			<nationalEconomy></nationalEconomy>
+			<startWorkDate></startWorkDate>
+			<mainEconResur>01</mainEconResur>
+			<isFarmer>0</isFarmer>
+			<healthStat>1</healthStat>
+			<hobbyDesc></hobbyDesc>
+			<grpListCert />
+			<grpListAddr />
+			<grpListEaddr />
+			<grpListRelPer />
+			<grpListRelCorp />
+		</request>
+	</body>
+</transaction>

@@ -1,0 +1,113 @@
+在老的移植库执行 
+create table ITEM_Z_S
+(
+  CONT_NO      VARCHAR2(30),
+  LIMIT_ACC_NO VARCHAR2(30),
+  SUM_AMT_Z    NUMBER(13,2),
+  FLAG         CHAR(1)
+);
+
+ALTER TABLE cus_indiv MODIFY work_resume VARCHAR2(500);--工作简历
+ALTER TABLE ctr_loan_cont MODIFY usg_dsc VARCHAR2(500);--贷款用途
+ALTER TABLE grt_ctr_cont MODIFY guar_cus_id VARCHAR2(25);
+ALTER TABLE grt_ctr_cont MODIFY grt_cont_no VARCHAR2(25);
+ALTER TABLE ctr_fact_cont MODIFY USE_DEC VARCHAR2(500);
+ALTER TABLE acc_corp_loan MODIFY USG_DSC VARCHAR2(500);
+ALTER TABLE T_INF_TRAF_CAR MODIFY VEHICLE_FLAG_CD VARCHAR(71);
+ALTER TABLE CUS_CORP MODIFY REAL_CONL_NAME VARCHAR(40);
+ALTER TABLE CUS_INDIV MODIFY CUS_REL_NAME VARCHAR(40);
+
+UPDATE t_guar_model a SET a.hinge_field_01='RECEIPTS_CODE'  WHERE a.model_id='TInfNonSwr' ;--非标准仓单关键字段1从SWP_CODE改为RECEIPTS_CODE，表中无SWP_CODE字段
+
+
+--贷后风险例会
+
+create or replace view acc_loan_all AS 
+SELECT a.bill_no,a.cont_no,a.prd_cde,a.prd_name,cont1.appl_amt cont_amt,cont1.gurt_typ FROM acc_loan a LEFT JOIN ctr_loan_cont cont1 ON a.cont_no=cont1.cont_no 
+UNION ALL
+SELECT b.bill_no,b.cont_no,b.prd_cde,b.prd_name,cont2.appl_amt cont_amt,cont2.gurt_typ FROM acc_corp_loan b LEFT JOIN ctr_corp_loan_entr cont2 ON b.cont_no=cont2.cont_no
+UNION ALL
+SELECT c.bill_no,c.cont_no,c.prd_cde,c.prd_name,cont3.appl_amt cont_amt,cont3.gurt_typ FROM acc_fact c LEFT JOIN ctr_fact_cont cont3 ON c.cont_no=cont3.cont_no
+UNION ALL
+SELECT d.bill_no,d.cont_no,d.prd_cde,d.prd_name,cont4.cont_amt cont_amt,cont4.gurt_typ FROM acc_tf_app d LEFT JOIN ctr_tf_app cont4 ON d.cont_no=cont4.cont_no ;--贸易融资
+
+
+create table wfi_oldcmis--老信贷审批历史移植表
+(
+  CONT_NO             VARCHAR2(30) not null,
+  SERNO               VARCHAR2(40) not null,
+  WFI_APP_ADVICE_ID VARCHAR2(32) not null,
+  APP_CONCLUSION    VARCHAR2(10),
+  APP_ADVICE        VARCHAR2(2000),
+  WFI_INSTANCE_ID   VARCHAR2(32),
+  WFI_NODE_ID       VARCHAR2(32),
+  WFI_NODE_NAME     VARCHAR2(100),
+  WFI_SCENE_ID      VARCHAR2(32),
+  WFSIGN            VARCHAR2(50),
+  APP_USER          VARCHAR2(20),
+  APP_ORG           VARCHAR2(30),
+  OPERATE_TIME      VARCHAR2(25),
+  REMARK            VARCHAR2(100),
+  WFI_STATUS        VARCHAR2(12)
+);
+comment on table CTR_LOAN_CONT
+  is '老信贷系统审批历史数据2019-11-18之前';
+comment on column wfi_oldcmis.CONT_NO
+  is '合同编号';
+comment on column wfi_oldcmis.SERNO
+  is '业务流水号';
+comment on column wfi_oldcmis.WFI_APP_ADVICE_ID
+  is '审批意见流水';
+comment on column wfi_oldcmis.APP_CONCLUSION
+  is '审批意见（10 同意；20 否决；30 打回；40 退回；50 跳转；60 拿回；70 有条件同意；80 续议）;';
+comment on column wfi_oldcmis.APP_ADVICE
+  is '审批意见';
+comment on column wfi_oldcmis.WFI_INSTANCE_ID
+  is '流程实例号';
+comment on column wfi_oldcmis.WFI_NODE_ID
+  is '流程节点id';
+comment on column wfi_oldcmis.WFI_NODE_NAME
+  is '流程节点名称';
+comment on column wfi_oldcmis.WFSIGN
+  is '流程标识';
+comment on column wfi_oldcmis.APP_USER
+  is '操作员';
+comment on column wfi_oldcmis.APP_ORG
+  is '操作机构';
+comment on column wfi_oldcmis.OPERATE_TIME
+  is '操作时间';
+comment on column wfi_oldcmis.WFI_STATUS
+  is '审批状态';
+
+CREATE TABLE cont( cont_no VARCHAR2(40) );
+create table GRT_TURN(  OLD_GRT CHAR(5),NEW_GRT VARCHAR2(9));
+
+--上线方案，以sit库为基板，导入所有的基础数据表，将其他表数据删除，在导入生产数据
+--还款账号找核心要
+--客户状态全部为草稿
+--结清日期根据交易明细处理
+--修改要素只配给最后两个岗
+--结清日期为空，
+--还款账号
+--客户状态全部为草稿，不能修改字段必须要有值
+--结清日期根据交易明细处理
+--最高额担保合同金额是否足额在合同签订时校验
+--修改要素权限，下一审批人有可能是结束的都配
+
+
+--移植数据存在贷款台账状态为空的数据
+--同业客户是否只能用统一社会信用代码证开户
+--有些柜员机构号为空，用户修改选不到邢台银行总行；有些柜员列表上有机构但是点进去没有
+--台账的证件类型为空
+--产品排序
+--押品名称为空，押品分类为空，土地使用权没有明细信息的全部按其他土地处理
+
+--余额为0，欠息天数，欠本天数为0，状态为正常的数据是否置为结清
+SELECT * FROM acc_loan@CMISTEST2101 a WHERE a.loan_balance=0 AND cap_owe_days=0 AND int_owe_days=0 AND a.account_status='1';
+
+--根据核算数据更新信贷台账核销状态
+--合同审批通过，签订时校验不通过，不如押品不足额，授信不够，无法注销或者作废会一致卡着
+--验证最高额担保合同在业务合同签订阶段重复占用押品金额bug,贷款、保函等所有业务
+--跨支行押品移交
+
+ALTER TABLE GRT_CTR_CONT MODIFY CUS_ID VARCHAR2(25);

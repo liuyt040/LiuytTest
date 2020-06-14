@@ -1,0 +1,81 @@
+上线前所有合同要放款完成，或者作废；
+
+合同重签：生效未出账的合同可以做重签，重签时合同号一致
+合同撤销：撤销之后原申请可以用，再次发起合同新增，前提条件
+合同注销：合同作废，合同金额作废，批单金额中注销的合同金额作废
+
+
+
+
+合同状态cont_sts和审批状态wf_appr_sts
+合同新增时 合同状态未登记，审批状态待发起
+审批通过时 合同状态已登记，审批状态通过
+签订时           合同状态生效，审批状态通过
+出账申请之后 合同状态执行中，审批状态通过
+出账之前被撤销，合同状态撤销，审批状态通过
+合同到期，日终合同状态为执行完毕
+合同未到期，除循环贷款的合同外，全部发放完毕合同状态为执行完毕
+手工触发注销按钮，手工让合同失效，合同下有借据，借据结清后想让合同失效，可以点注销按钮
+
+
+t_guar_class_info押品类型表，系统中所有的押品都在这个表
+T_GUAR_MODEL押品模型表，保存押品对应的页面模型
+添加保证人信息表                                                                                GRT_APP_GUAR_REL，表中存业务申请流水号进行关联
+抵、质押物信息表   t_guar_base_info押品基本信息，GRT_APP_GUAR_REL押品与申请关系表 ，当guar_busistate状态为05【与业务关联】，不能进行估值
+押品所在业务阶段guar_busistate，最开始【01已创建】，合同签订时【06与合同关联】，出账申请审批通过后【07与借据关联】
+
+--GRT_APP_GRTCTR_REL  最高额担保合同与业务申请关系表
+
+担保合同与抵质押物关联表   GRT_GRTCTR_GUAR_REL
+
+担保合同表                                   grt_ctr_cont
+业务合同与担保合同关联表grt_ctr_grtctr_rel
+
+业务合同表
+'GRT_CTR_GRTCTR_REL','GRT_GRTCTR_GUAR_REL','GRT_APP_GUAR_REL'
+--押品金额占用时机与状态
+BIZ88018201906190102838912951
+IQP88018201906190102838912350
+ZY010100120190801347317
+57007167-9
+1新增时押品创建
+2审批通过后与业务关联，审批通过时占用金额为0
+3合同审批通过后与合同关联。
+4合同签订时更新押品占用额度（其实是因为合同签订时签订了担保合同，此时才更新押品占用金额）。
+5合同撤销时恢复押品的占用额度，其实是因为合同撤销时一并撤销了担保合同，导致占用额度恢复；撤销时仍为与合同关联；
+6
+合同签订操作：
+处理担保合同
+	1）合同签订时处理最高额担保合同
+	2）合同签订时出来一般担保合同：
+		1担保合同状态为【00未签订】、【43撤销】时，设置状态为【10签订】
+		2如果担保合同状态为【10已签订】、【21执行中】、【90执行完毕】，提示一般担保合同已被占用，签订失败；
+		3如果一把担保合同状态为【41注销】，提示一般担保合同已被注销，签订失败
+	3）处理授信额度
+	4）处理合作方额度
+	5）修改合同状态：将业务合同状态置为【09生效】，保存合同信息
+	6） 处理押品的占用额度,根据合同号查询出担保合同下所有押品信息，根据押品与担保合同表中的担保金额（GRT_GRTCTR_GUAR_REL.gurt_amt）进行占用，规则为已占用金+本次占用金额
+	
+	
+
+--
+
+------------
+一般担保合同管理，新增担保合同处理逻辑
+GRT_APP_CTR_GUAR_REL 押品与业务合同关系表，担保合同新增时押品与业务合同绑定
+
+
+
+SELECT a.guar_type_cd,a.guar_way,a.guar_type1_name,a.guar_type2_name,a.guar_type_cd_cnname,a.keyword1,a.keyword2,a.model_id,b.model_name,b.table_name,b.hinge_field_01,b.hinge_field_02 FROM t_guar_class_info a
+LEFT JOIN T_GUAR_MODEL b ON a.model_id=b.model_id AND a.guar_type_state='1' 
+ORDER BY a.guar_type1_name,a.guar_type2_name;
+
+影像目录
+
+SELECT c.cont_no,c.serno,b.instanceid,a.* FROM wfi_app_advice@CMISTEST2101 a
+JOIN WFI_JOIN@CMISTEST2101 b ON b.instanceid=a.wfi_instance_id
+JOIN ctr_loan_cont@CMISTEST2101 c ON  c.serno=b.pk_value
+ORDER BY wfi_instance_id,operate_time ;--262746
+
+ecif同步字段信贷必须有值
+还款账号为空
